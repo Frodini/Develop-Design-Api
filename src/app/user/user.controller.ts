@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { Service } from "typedi";
 import { UserService } from "./user.service";
+import { authenticateToken } from "../middleware/auth.middleware";
 
 @Service()
 export class UserController {
@@ -12,6 +13,7 @@ export class UserController {
   }
 
   private routes() {
+    // Crear usuario
     this.router.post("/", async (req, res) => {
       try {
         const userId = await this.userService.createUser(req.body);
@@ -21,7 +23,24 @@ export class UserController {
       }
     });
 
-    this.router.put("/:userId", async (req, res) => {
+    // Inicio de sesión
+    this.router.post("/login", async (req, res) => {
+      try {
+        const { email, password } = req.body;
+        const token = await this.userService.authenticateUser(email, password);
+
+        if (token) {
+          res.status(200).json({ token });
+        } else {
+          res.status(401).json({ error: "Invalid credentials" });
+        }
+      } catch (error) {
+        res.status(500).json({ error: "Error logging in" });
+      }
+    });
+
+    // Actualizar usuario
+    this.router.put("/:userId", authenticateToken, async (req, res) => {
       try {
         const { userId } = req.params;
         await this.userService.updateUser(Number(userId), req.body);
@@ -31,7 +50,18 @@ export class UserController {
       }
     });
 
-    this.router.get("/:userId", async (req, res) => {
+    // Consultar y gestionar usuarios
+    this.router.get("/", authenticateToken, async (req, res) => {
+      try {
+        const users = await this.userService.searchUsers(req.query);
+        res.status(200).json(users);
+      } catch (error) {
+        res.status(500).json({ error: "Error fetching users" });
+      }
+    });
+
+    // Consultar perfil (individual)
+    this.router.get("/:userId", authenticateToken, async (req, res) => {
       try {
         const user = await this.userService.getUserById(
           Number(req.params.userId)
@@ -43,16 +73,6 @@ export class UserController {
         }
       } catch (error) {
         res.status(500).json({ error: "Error fetching user" });
-      }
-    });
-
-    this.router.get("/", async (req, res) => {
-      try {
-        const filters = req.query;
-        const users = await this.userService.searchUsers(filters);
-        res.status(200).json(users);
-      } catch (error) {
-        res.status(500).json({ error: "Error searching users" });
       }
     });
   }

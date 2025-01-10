@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import { UserRepository } from "./user.repository";
 import * as bcrypt from "bcrypt";
+import * as jwt from "jsonwebtoken";
 import { User } from "./user.model";
 
 @Service()
@@ -13,6 +14,24 @@ export class UserService {
       ...user,
       password: hashedPassword,
     });
+  }
+
+  async authenticateUser(
+    email: string,
+    password: string
+  ): Promise<string | null> {
+    const user = await this.userRepository.getUserByEmail(email);
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const token = jwt.sign(
+        { userId: user.id, role: user.role },
+        "tu_secreto",
+        {
+          expiresIn: "1h",
+        }
+      );
+      return token;
+    }
+    return null;
   }
 
   async updateUser(userId: number, user: Partial<User>): Promise<void> {
@@ -29,7 +48,6 @@ export class UserService {
   async searchUsers(filters: {
     role?: string;
     name?: string;
-    email?: string;
   }): Promise<User[]> {
     return this.userRepository.searchUsers(filters);
   }
