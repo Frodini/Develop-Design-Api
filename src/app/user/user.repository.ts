@@ -57,4 +57,28 @@ export class UserRepository {
       : "";
     return await db.all(`SELECT * FROM users ${whereClause}`, params);
   }
+  async validateSpecialties(specialtyIds: number[]): Promise<boolean> {
+    const db = await this.dbService.connect();
+    const placeholders = specialtyIds.map(() => "?").join(", ");
+    const result = await db.all(
+      `SELECT id FROM specialties WHERE id IN (${placeholders})`,
+      specialtyIds
+    );
+
+    return result.length === specialtyIds.length;
+  }
+
+  async associateDoctorSpecialties(
+    doctorId: number,
+    specialtyIds: number[]
+  ): Promise<void> {
+    const db = await this.dbService.connect();
+    const queries = specialtyIds.map((specialtyId) =>
+      db.run(
+        `INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES (?, ?)`,
+        [doctorId, specialtyId]
+      )
+    );
+    await Promise.all(queries);
+  }
 }

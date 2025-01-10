@@ -9,11 +9,37 @@ export class UserService {
   constructor(private userRepository: UserRepository) {}
 
   async createUser(user: User): Promise<number> {
+    if (
+      user.role === "Doctor" &&
+      (!user.specialties || user.specialties.length === 0)
+    ) {
+      throw new Error("Doctors must have at least one specialty.");
+    }
+
+    if (user.role === "Doctor") {
+      const specialtiesValid = await this.userRepository.validateSpecialties(
+        user.specialties!
+      );
+      if (!specialtiesValid) {
+        throw new Error("Invalid specialties provided.");
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(user.password, 10);
-    return this.userRepository.createUser({
+    const userId = await this.userRepository.createUser({
       ...user,
       password: hashedPassword,
+      specialties: undefined, // No guardar especialidades en la tabla `users`
     });
+
+    if (user.role === "Doctor") {
+      await this.userRepository.associateDoctorSpecialties(
+        userId,
+        user.specialties!
+      );
+    }
+
+    return userId;
   }
 
   async authenticateUser(
