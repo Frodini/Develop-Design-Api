@@ -5,7 +5,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { check, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { AuditLogService } from "../audit-log/audit-log.service"; // Asegúrate de que la ruta sea correcta
+import { AuditLogService } from "../audit-log/audit-log.service";
 
 const handleValidationErrors: RequestHandler = async (
   req: Request,
@@ -72,9 +72,6 @@ export class UserController {
       }
     );
 
-    // Inicio de sesión (No necesita auditoría)
-
-    // Actualizar usuario
     this.router.put(
       "/:userId",
       authenticateToken,
