@@ -1,19 +1,11 @@
+import { Service } from "typedi";
 import sqlite3 from "sqlite3";
 import { Database, open } from "sqlite";
 import path from "path";
 
+@Service() // Este decorador es crucial para que `typedi` registre el servicio
 export class DatabaseService {
-  private static instance: DatabaseService;
   private db: Database | null = null;
-
-  private constructor() {}
-
-  public static getInstance(): DatabaseService {
-    if (!DatabaseService.instance) {
-      DatabaseService.instance = new DatabaseService();
-    }
-    return DatabaseService.instance;
-  }
 
   async connect(): Promise<Database> {
     if (this.db) return this.db;
