@@ -35,11 +35,13 @@ export class UserRepository {
     );
   }
 
-  async searchUsers(filters: {
-    role?: string;
-    name?: string;
-  }): Promise<User[]> {
+  async searchUsersWithPagination(
+    filters: { role?: string; name?: string },
+    options: { limit: number; offset: number; sort: string }
+  ): Promise<User[]> {
     const db = await this.dbService.connect();
+    const { limit, offset, sort } = options;
+
     const conditions: string[] = [];
     const params: any[] = [];
 
@@ -55,8 +57,12 @@ export class UserRepository {
     const whereClause = conditions.length
       ? `WHERE ${conditions.join(" AND ")}`
       : "";
-    return await db.all(`SELECT * FROM users ${whereClause}`, params);
+    return db.all(
+      `SELECT * FROM users ${whereClause} ORDER BY ${sort} LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
   }
+
   async validateSpecialties(specialtyIds: number[]): Promise<boolean> {
     const db = await this.dbService.connect();
     const placeholders = specialtyIds.map(() => "?").join(", ");
@@ -80,5 +86,10 @@ export class UserRepository {
       )
     );
     await Promise.all(queries);
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    const db = await this.dbService.connect();
+    await db.run(`DELETE FROM users WHERE id = ?`, [userId]);
   }
 }

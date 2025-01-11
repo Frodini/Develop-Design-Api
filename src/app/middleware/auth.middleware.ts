@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import * as jwt from "jsonwebtoken";
 
+// Extiende el tipo Request para incluir la propiedad `user`
+interface AuthenticatedRequest extends Request {
+  user?: { userId: number; role: string }; // Ajusta el tipo según lo que contiene `user`
+}
+
 export const authenticateToken = (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -19,7 +24,7 @@ export const authenticateToken = (
       res.status(403).json({ message: "Invalid token" });
       return;
     }
-    (req as any).user = user; // Adjuntar el usuario al objeto `req`
+    req.user = user as { userId: number; role: string }; // Adjunta el usuario tipado al objeto `req`
     next();
   });
 };

@@ -71,10 +71,25 @@ export class UserService {
     return this.userRepository.getUserById(userId);
   }
 
-  async searchUsers(filters: {
-    role?: string;
-    name?: string;
-  }): Promise<User[]> {
-    return this.userRepository.searchUsers(filters);
+  async searchUsers(
+    filters: { role?: string; name?: string },
+    options: { page: number; limit: number; sort: string }
+  ): Promise<User[]> {
+    const { page, limit, sort } = options;
+
+    const offset = (page - 1) * limit;
+    return this.userRepository.searchUsersWithPagination(filters, {
+      limit,
+      offset,
+      sort,
+    });
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    await this.userRepository.deleteUser(userId);
   }
 }
