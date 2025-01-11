@@ -5,6 +5,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { check, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
+import { AuditLogService } from "../audit-log/audit-log.service"; // Asegúrate de que la ruta sea correcta
 
 const handleValidationErrors: RequestHandler = async (
   req: Request,
@@ -23,7 +24,10 @@ const handleValidationErrors: RequestHandler = async (
 export class UserController {
   public router: Router;
 
-  constructor(private userService: UserService) {
+  constructor(
+    private userService: UserService,
+    private auditLogService: AuditLogService // Inyección del servicio de auditoría
+  ) {
     this.router = Router();
     this.routes();
   }
@@ -45,11 +49,20 @@ export class UserController {
           .optional()
           .isArray()
           .withMessage("Specialties must be an array of numbers"),
-        handleValidationErrors, // Usamos la función local
+        handleValidationErrors,
       ],
       async (req: Request, res: Response) => {
         try {
           const userId = await this.userService.createUser(req.body);
+
+          // Registrar acción de auditoría
+          const loggedUserId = (req as any).user?.userId || 0;
+          await this.auditLogService.log(
+            loggedUserId,
+            "CREATE_USER",
+            `Created user with ID ${userId}`
+          );
+
           res
             .status(201)
             .json({ userId, message: "User created successfully" });
@@ -59,27 +72,14 @@ export class UserController {
       }
     );
 
-    this.router.post("/login", async (req, res) => {
-      try {
-        const { email, password } = req.body;
-        const token = await this.userService.authenticateUser(email, password);
+    // Inicio de sesión (No necesita auditoría)
 
-        if (token) {
-          res.status(200).json({ token });
-        } else {
-          res.status(401).json({ error: "Invalid credentials" });
-        }
-      } catch (error) {
-        res.status(500).json({ error: "Error logging in" });
-      }
-    });
-
+    // Actualizar usuario
     this.router.put(
       "/:userId",
-      authenticateToken, // Middleware de autenticación
-      authorizeRoles(["Admin", "Patient"]), // Middleware de autorización
+      authenticateToken,
+      authorizeRoles(["Admin", "Patient"]),
       [
-        // Validadores
         check("name")
           .optional()
           .isString()
@@ -89,12 +89,21 @@ export class UserController {
           .optional()
           .isLength({ min: 6 })
           .withMessage("Password must be at least 6 characters long"),
-        handleValidationErrors, // Middleware para manejar errores de validación
+        handleValidationErrors,
       ],
       async (req: Request, res: Response) => {
         try {
           const { userId } = req.params;
           await this.userService.updateUser(Number(userId), req.body);
+
+          // Registrar acción de auditoría
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "UPDATE_USER",
+            `Updated user with ID ${userId}`
+          );
+
           res.status(200).json({ message: "User updated successfully" });
         } catch (error) {
           res.status(400).json({ error: "Error updating user" });
@@ -102,6 +111,7 @@ export class UserController {
       }
     );
 
+    // Consultar usuarios
     this.router.get(
       "/",
       authenticateToken,
@@ -120,6 +130,14 @@ export class UserController {
             sort: sort as string,
           });
 
+          // Registrar acción de auditoría
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "GET_USERS",
+            `Fetched users with filters ${JSON.stringify(filters)}`
+          );
+
           res.status(200).json(users);
         } catch (error) {
           res.status(500).json({ error: "Error fetching users" });
@@ -127,6 +145,7 @@ export class UserController {
       }
     );
 
+    // Consultar usuario por ID
     this.router.get(
       "/:userId",
       authenticateToken,
@@ -136,7 +155,6 @@ export class UserController {
           const { userId } = req.params;
           const loggedUserId = (req as any).user.userId;
 
-          // Un paciente solo puede consultar su propio perfil
           if (
             (req as any).user.role === "Patient" &&
             Number(userId) !== loggedUserId
@@ -144,11 +162,18 @@ export class UserController {
             res.status(403).json({
               error: "Forbidden: You cannot access other users' data",
             });
-            return; // Importante: termina la ejecución después de enviar una respuesta
+            return;
           }
 
           const user = await this.userService.getUserById(Number(userId));
           if (user) {
+            // Registrar acción de auditoría
+            await this.auditLogService.log(
+              loggedUserId,
+              "GET_USER",
+              `Fetched user with ID ${userId}`
+            );
+
             res.status(200).json(user);
           } else {
             res.status(404).json({ error: "User not found" });
@@ -159,6 +184,7 @@ export class UserController {
       }
     );
 
+    // Eliminar usuario
     this.router.delete(
       "/:userId",
       authenticateToken,
@@ -167,6 +193,15 @@ export class UserController {
         try {
           const { userId } = req.params;
           await this.userService.deleteUser(Number(userId));
+
+          // Registrar acción de auditoría
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "DELETE_USER",
+            `Deleted user with ID ${userId}`
+          );
+
           res.status(200).json({ message: "User deleted successfully" });
         } catch (error) {
           res.status(400).json({ error: "Error deleting user" });
