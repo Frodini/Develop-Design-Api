@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { Container } from "typedi";
 import { DatabaseService } from "../database/database.service";
 import { Api } from "./api";
+import listEndpoints from "express-list-endpoints";
 
 const app: Application = express();
 
@@ -34,3 +35,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+console.log(listEndpoints(app)); //Permite ver todas las rutas de la aplicación

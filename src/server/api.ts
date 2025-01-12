@@ -24,7 +24,7 @@ export class Api {
     this.apiRouter.use("/users", this.userController.router);
     this.apiRouter.use("/audit-log", this.auditLogController.router); // Rutas de auditoría
     this.apiRouter.use("/appointments", this.appointmentController.router);
-    this.apiRouter.use("/availability", this.availabilityController.router);
+    this.apiRouter.use("/", this.availabilityController.router);
   }
 
   public getApiRouter(): Router {
