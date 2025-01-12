@@ -52,6 +52,8 @@ export class DatabaseService {
             time TEXT NOT NULL,
             reason TEXT,
             status TEXT DEFAULT 'Scheduled',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (patientId) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );
