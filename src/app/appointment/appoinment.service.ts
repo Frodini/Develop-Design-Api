@@ -51,4 +51,8 @@ export class AppointmentService {
   async getDoctorSchedule(doctorId: number): Promise<any[]> {
     return this.appointmentRepository.getDoctorSchedule(doctorId);
   }
+
+  async getAppointmentById(appointmentId: number): Promise<Appointment | null> {
+    return this.appointmentRepository.getAppointmentById(appointmentId);
+  }
 }
