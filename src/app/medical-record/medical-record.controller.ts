@@ -3,17 +3,22 @@ import { Service } from "typedi";
 import { MedicalRecordService } from "./medical-record.service";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
+import { AuditLogService } from "../audit-log/audit-log.service";
 
 @Service()
 export class MedicalRecordController {
   public router: Router;
 
-  constructor(private medicalRecordService: MedicalRecordService) {
+  constructor(
+    private medicalRecordService: MedicalRecordService,
+    private auditLogService: AuditLogService
+  ) {
     this.router = Router();
     this.routes();
   }
 
   private routes() {
+    // Crear un expediente médico
     this.router.post(
       "/",
       authenticateToken,
@@ -23,6 +28,15 @@ export class MedicalRecordController {
           const recordId = await this.medicalRecordService.createMedicalRecord(
             req.body
           );
+
+          // Registrar acción en audit-log
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "CREATE_MEDICAL_RECORD",
+            `Created medical record ID ${recordId} for patient ID ${req.body.patientId}`
+          );
+
           res
             .status(201)
             .json({ recordId, message: "Medical record created successfully" });
@@ -32,6 +46,7 @@ export class MedicalRecordController {
       }
     );
 
+    // Actualizar un expediente médico
     this.router.put(
       "/:recordId",
       authenticateToken,
@@ -39,10 +54,20 @@ export class MedicalRecordController {
       async (req: Request, res: Response) => {
         try {
           const { recordId } = req.params;
+
           await this.medicalRecordService.updateMedicalRecord(
             Number(recordId),
             req.body
           );
+
+          // Registrar acción en audit-log
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "UPDATE_MEDICAL_RECORD",
+            `Updated medical record ID ${recordId}`
+          );
+
           res.status(200).json({
             recordId: Number(recordId),
             message: "Medical record updated successfully",
@@ -53,6 +78,7 @@ export class MedicalRecordController {
       }
     );
 
+    // Consultar un expediente médico
     this.router.get(
       "/:recordId",
       authenticateToken,
@@ -71,6 +97,13 @@ export class MedicalRecordController {
           if (!record) {
             res.status(404).json({ error: "Medical record not found" });
           }
+
+          // Registrar acción en audit-log
+          await this.auditLogService.log(
+            userId,
+            "VIEW_MEDICAL_RECORD",
+            `Viewed medical record ID ${recordId}`
+          );
 
           res.status(200).json(record);
         } catch (error: any) {
