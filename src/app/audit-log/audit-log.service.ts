@@ -9,4 +9,8 @@ export class AuditLogService {
   async log(userId: number, action: string, details?: string): Promise<void> {
     await this.auditLogRepository.logAction({ userId, action, details });
   }
+
+  async getLogs(): Promise<any[]> {
+    return await this.auditLogRepository.getLogs();
+  }
 }

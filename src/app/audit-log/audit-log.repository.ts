@@ -13,4 +13,11 @@ export class AuditLogRepository {
       [auditLog.userId, auditLog.action, auditLog.details || null]
     );
   }
+
+  async getLogs(): Promise<any[]> {
+    const db = await this.dbService.connect();
+    return await db.all(
+      `SELECT id, userId, action, details, timestamp FROM audit_log ORDER BY timestamp DESC`
+    );
+  }
 }
