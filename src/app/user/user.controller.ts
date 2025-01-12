@@ -5,7 +5,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { check, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { AuditLogService } from "../audit-log/audit-log.service";
+import { AuditLogService } from "../audit-log/audit-log.service"; // Asegúrate de que la ruta sea correcta
 
 const handleValidationErrors: RequestHandler = async (
   req: Request,
@@ -72,6 +72,32 @@ export class UserController {
       }
     );
 
+    this.router.post("/login", async (req, res) => {
+      try {
+        const { email, password } = req.body;
+        const token = await this.userService.authenticateUser(email, password);
+
+        if (token) {
+          // Registrar acción de auditoría
+          const user = await this.userService.getUserByEmail(email); // Asegúrate de tener este método en `UserService`
+          const loggedUserId = user?.id || 0; // Obtener el ID del usuario autenticado
+
+          await this.auditLogService.log(
+            loggedUserId,
+            "LOGIN",
+            `User with email ${email} logged in successfully`
+          );
+
+          res.status(200).json({ token });
+        } else {
+          res.status(401).json({ error: "Invalid credentials" });
+        }
+      } catch (error) {
+        res.status(500).json({ error: "Error logging in" });
+      }
+    });
+
+    // Actualizar usuario
     this.router.put(
       "/:userId",
       authenticateToken,
@@ -132,7 +158,7 @@ export class UserController {
           await this.auditLogService.log(
             loggedUserId,
             "GET_USERS",
-            `Fetched users with filters ${JSON.stringify(filters)}`
+            `Fetched users with filters`
           );
 
           res.status(200).json(users);
