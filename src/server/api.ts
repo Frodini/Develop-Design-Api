@@ -25,9 +25,6 @@ export class Api {
     this.apiRouter.use("/audit-log", this.auditLogController.router); // Rutas de auditoría
     this.apiRouter.use("/appointments", this.appointmentController.router);
     this.apiRouter.use("/availability", this.availabilityController.router);
-
-    // Aquí puedes agregar otros módulos, como:
-    // this.apiRouter.use("/appointments", this.appointmentsController.router);
   }
 
   public getApiRouter(): Router {
