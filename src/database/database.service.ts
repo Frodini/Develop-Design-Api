@@ -62,16 +62,19 @@ export class DatabaseService {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             patientId INTEGER NOT NULL,
             doctorId INTEGER NOT NULL,
-            diagnosis TEXT,
+            diagnosis TEXT NOT NULL,
+            prescriptions TEXT, -- JSON con una lista de recetas
             notes TEXT,
+            ongoingTreatments TEXT, -- JSON con una lista de tratamientos
             FOREIGN KEY (patientId) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS record_test_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             recordId INTEGER NOT NULL,
-            type TEXT NOT NULL,
-            result TEXT NOT NULL,
+            type TEXT NOT NULL, -- Tipo de prueba (ej: "Blood Test")
+            result TEXT NOT NULL, -- Resultado de la prueba
             FOREIGN KEY (recordId) REFERENCES medical_records(id) ON DELETE CASCADE
         );
 
