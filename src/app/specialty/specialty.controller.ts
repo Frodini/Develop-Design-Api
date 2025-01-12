@@ -3,12 +3,16 @@ import { Service } from "typedi";
 import { SpecialtyService } from "./specialty.service";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
+import { AuditLogService } from "../audit-log/audit-log.service";
 
 @Service()
 export class SpecialtyController {
   public router: Router;
 
-  constructor(private specialtyService: SpecialtyService) {
+  constructor(
+    private specialtyService: SpecialtyService,
+    private auditLogService: AuditLogService
+  ) {
     this.router = Router();
     this.routes();
   }
@@ -21,6 +25,15 @@ export class SpecialtyController {
       async (req: Request, res: Response) => {
         try {
           const specialties = await this.specialtyService.getAllSpecialties();
+
+          // Registrar acción en audit-log
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "LIST_SPECIALTIES",
+            "Listed all specialties"
+          );
+
           res.status(200).json(specialties);
         } catch (error: any) {
           res.status(500).json({ error: error.message });
@@ -30,7 +43,7 @@ export class SpecialtyController {
 
     // Asociar especialidades a un doctor
     this.router.post(
-      "/doctors/:doctorId/specialties",
+      "/doctors/:doctorId",
       authenticateToken,
       authorizeRoles(["Doctor"]),
       async (req: Request, res: Response): Promise<void> => {
@@ -47,6 +60,16 @@ export class SpecialtyController {
             Number(doctorId),
             specialtyIds
           );
+
+          // Registrar acción en audit-log
+          await this.auditLogService.log(
+            loggedUserId,
+            "ASSOCIATE_SPECIALTIES",
+            `Associated specialties ${specialtyIds.join(
+              ", "
+            )} to doctor ID ${doctorId}`
+          );
+
           res
             .status(200)
             .json({ message: "Specialties associated successfully" });
@@ -66,6 +89,15 @@ export class SpecialtyController {
           const doctors = await this.specialtyService.getDoctorsBySpecialty(
             Number(specialtyId)
           );
+
+          // Registrar acción en audit-log
+          const loggedUserId = (req as any).user.userId;
+          await this.auditLogService.log(
+            loggedUserId,
+            "FILTER_DOCTORS_BY_SPECIALTY",
+            `Filtered doctors by specialty ID ${specialtyId}`
+          );
+
           res.status(200).json(doctors);
         } catch (error: any) {
           res.status(500).json({ error: error.message });
