@@ -6,6 +6,7 @@ import { AppointmentController } from "../app/appointment/appoinment.controller"
 import { AvailabilityController } from "../app/availability/availabilty.controller";
 import { SpecialtyController } from "../app/specialty/specialty.controller";
 import { DepartmentController } from "../app/department/department.controller";
+import { NotificationController } from "../app/notification/notification.controller";
 
 @Service()
 export class Api {
@@ -17,7 +18,8 @@ export class Api {
     private appointmentController: AppointmentController,
     private availabilityController: AvailabilityController,
     private specialtyController: SpecialtyController,
-    private departmentController: DepartmentController
+    private departmentController: DepartmentController,
+    private notificationController: NotificationController
   ) {
     this.apiRouter = Router();
     this.initializeRoutes();
@@ -31,6 +33,7 @@ export class Api {
     this.apiRouter.use("/", this.availabilityController.router);
     this.apiRouter.use("/specialties", this.specialtyController.router);
     this.apiRouter.use("/departments", this.departmentController.router);
+    this.apiRouter.use("/notifications", this.notificationController.router);
   }
 
   public getApiRouter(): Router {
