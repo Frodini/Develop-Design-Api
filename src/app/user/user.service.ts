@@ -92,4 +92,8 @@ export class UserService {
     }
     await this.userRepository.deleteUser(userId);
   }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.userRepository.getUserByEmail(email);
+  }
 }
