@@ -45,10 +45,6 @@ export class UserController {
         check("role")
           .isIn(["Patient", "Doctor", "Admin"])
           .withMessage("Invalid role"),
-        check("specialties")
-          .optional()
-          .isArray()
-          .withMessage("Specialties must be an array of numbers"),
         handleValidationErrors,
       ],
       async (req: Request, res: Response) => {
