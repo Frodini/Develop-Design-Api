@@ -83,7 +83,7 @@ export class DatabaseService {
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );
 
-        CREATE TABLE notifications (
+        CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             recipientId INTEGER NOT NULL, -- Usuario que recibe la notificación
             message TEXT NOT NULL, -- Contenido de la notificación
