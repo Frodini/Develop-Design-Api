@@ -83,6 +83,15 @@ export class DatabaseService {
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipientId INTEGER NOT NULL, -- Usuario que recibe la notificación
+            message TEXT NOT NULL, -- Contenido de la notificación
+            read BOOLEAN DEFAULT FALSE, -- Estado de lectura
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora de creación
+            FOREIGN KEY (recipientId) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             userId INTEGER NOT NULL,
