@@ -4,6 +4,8 @@ import { UserController } from "../app/user/user.controller";
 import { AuditLogController } from "../app/audit-log/audit-log.controller";
 import { AppointmentController } from "../app/appointment/appoinment.controller";
 import { AvailabilityController } from "../app/availability/availabilty.controller";
+import { SpecialtyController } from "../app/specialty/specialty.controller";
+import { DepartmentController } from "../app/department/department.controller";
 
 @Service()
 export class Api {
@@ -13,7 +15,9 @@ export class Api {
     private userController: UserController,
     private auditLogController: AuditLogController,
     private appointmentController: AppointmentController,
-    private availabilityController: AvailabilityController
+    private availabilityController: AvailabilityController,
+    private specialtyController: SpecialtyController,
+    private departmentController: DepartmentController
   ) {
     this.apiRouter = Router();
     this.initializeRoutes();
@@ -25,6 +29,8 @@ export class Api {
     this.apiRouter.use("/audit-log", this.auditLogController.router); // Rutas de auditoría
     this.apiRouter.use("/appointments", this.appointmentController.router);
     this.apiRouter.use("/", this.availabilityController.router);
+    this.apiRouter.use("/specialties", this.specialtyController.router);
+    this.apiRouter.use("/departments", this.departmentController.router);
   }
 
   public getApiRouter(): Router {
