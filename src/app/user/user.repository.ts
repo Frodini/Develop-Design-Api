@@ -88,6 +88,17 @@ export class UserRepository {
     await Promise.all(queries);
   }
 
+  async getSpecialtiesByDoctorId(doctorId: number): Promise<any[]> {
+    const db = await this.dbService.connect();
+    return await db.all(
+      `SELECT specialties.id, specialties.name 
+       FROM doctor_specialties 
+       JOIN specialties ON doctor_specialties.specialtyId = specialties.id 
+       WHERE doctor_specialties.doctorId = ?`,
+      [doctorId]
+    );
+  }
+
   async deleteUser(userId: number): Promise<void> {
     const db = await this.dbService.connect();
     await db.run(`DELETE FROM users WHERE id = ?`, [userId]);

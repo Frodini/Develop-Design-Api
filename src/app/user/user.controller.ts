@@ -51,6 +51,12 @@ export class UserController {
         try {
           const userId = await this.userService.createUser(req.body);
 
+          let specialties = [];
+          if (req.body.role === "Doctor") {
+            specialties = await this.userService.getSpecialtiesByDoctorId(
+              userId
+            );
+          }
           // Registrar acción de auditoría
           const loggedUserId = (req as any).user?.userId || 0;
           await this.auditLogService.log(

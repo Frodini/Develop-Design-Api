@@ -83,12 +83,18 @@ export class SpecialtyController {
     this.router.get(
       "/:specialtyId/doctors",
       authenticateToken,
-      async (req: Request, res: Response) => {
+      async (req: Request, res: Response): Promise<void> => {
         try {
           const { specialtyId } = req.params;
           const doctors = await this.specialtyService.getDoctorsBySpecialty(
             Number(specialtyId)
           );
+
+          if (!doctors || doctors.length === 0) {
+            res
+              .status(404)
+              .json({ error: "No doctors found for this specialty" });
+          }
 
           // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
@@ -98,6 +104,7 @@ export class SpecialtyController {
             `Filtered doctors by specialty ID ${specialtyId}`
           );
 
+          // Formatear respuesta, si es necesario
           res.status(200).json(doctors);
         } catch (error: any) {
           res.status(500).json({ error: error.message });
