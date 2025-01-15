@@ -80,7 +80,6 @@ export class UserRepository {
   ): Promise<void> {
     const db = await this.dbService.connect();
 
-    // Verificar que el doctor existe
     const doctor = await db.get(
       `SELECT id FROM users WHERE id = ? AND role = 'Doctor'`,
       [doctorId]
@@ -89,7 +88,6 @@ export class UserRepository {
       throw new Error("Doctor not found or invalid role.");
     }
 
-    // Validar especialidades existentes
     const placeholders = specialtyIds.map(() => "?").join(", ");
     const validSpecialties = await db.all(
       `SELECT id FROM specialties WHERE id IN (${placeholders})`,
@@ -99,7 +97,6 @@ export class UserRepository {
       throw new Error("Some specialties do not exist.");
     }
 
-    // Asociar especialidades al doctor
     const queries = specialtyIds.map((specialtyId) =>
       db.run(
         `INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES (?, ?)`,

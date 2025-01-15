@@ -1,3 +1,3 @@
-import "./server/server"; // Solo importa para inicializar el servidor
+import "./server/server";
 
 console.log("Node API is up and running!");

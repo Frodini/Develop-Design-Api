@@ -3,10 +3,10 @@ export interface MedicalRecord {
   patientId: number;
   doctorId: number;
   diagnosis: string;
-  prescriptions?: string[]; // Lista de recetas
+  prescriptions?: string[];
   notes?: string;
-  ongoingTreatments?: string[]; // Lista de tratamientos
-  testResults?: TestResult[]; // Resultados de pruebas médicas
+  ongoingTreatments?: string[];
+  testResults?: TestResult[];
 }
 
 export interface TestResult {

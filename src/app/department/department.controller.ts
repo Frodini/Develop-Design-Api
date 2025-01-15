@@ -17,7 +17,6 @@ export class DepartmentController {
   }
 
   private routes() {
-    // Listar todos los departamentos
     this.router.get(
       "/",
       authenticateToken,
@@ -25,7 +24,6 @@ export class DepartmentController {
         try {
           const departments = await this.departmentService.getAllDepartments();
 
-          // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,

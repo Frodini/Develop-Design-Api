@@ -15,7 +15,6 @@ export class MedicalRecordService {
       record
     );
 
-    // Create notification for the patient
     await this.notificationService.createNotification({
       recipientId: record.patientId,
       message: `A new medical record has been created for you by doctor ID ${record.doctorId}.`,
@@ -37,7 +36,6 @@ export class MedicalRecordService {
 
     await this.medicalRecordRepository.updateMedicalRecord(recordId, record);
 
-    // Create notification for the patient
     await this.notificationService.createNotification({
       recipientId: existingRecord.patientId,
       message: `Your medical record (ID ${recordId}) has been updated by doctor ID ${existingRecord.doctorId}.`,

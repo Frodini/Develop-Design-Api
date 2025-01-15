@@ -10,27 +10,24 @@ export class AppointmentService {
     private notificationService: NotificationService
   ) {}
 
-  // Crear una cita
   async createAppointment(appointment: Appointment): Promise<number> {
     const appointmentId = await this.appointmentRepository.createAppointment(
       appointment
     );
 
-    // Crear notificaciones para el paciente y el doctor
     await this.notificationService.createNotification({
       recipientId: appointment.patientId,
-      message: `Tu cita con el doctor ${appointment.doctorId} ha sido agendada para ${appointment.date} a las ${appointment.time}`,
+      message: `Your appointment with doctor ${appointment.doctorId} has been scheduled for ${appointment.date} at ${appointment.time}`,
     });
 
     await this.notificationService.createNotification({
       recipientId: appointment.doctorId,
-      message: `Tienes una nueva cita con el paciente ${appointment.patientId} el ${appointment.date} a las ${appointment.time}`,
+      message: `You have a new appointment with patient ${appointment.patientId} on ${appointment.date} at ${appointment.time}`,
     });
 
     return appointmentId;
   }
 
-  // Cancelar una cita
   async cancelAppointment(appointmentId: number): Promise<void> {
     const appointment = await this.appointmentRepository.getAppointmentById(
       appointmentId
@@ -44,19 +41,17 @@ export class AppointmentService {
       "Cancelled"
     );
 
-    // Crear notificaciones para el paciente y el doctor
     await this.notificationService.createNotification({
       recipientId: appointment.patientId,
-      message: `Tu cita con el doctor ${appointment.doctorId} programada para ${appointment.date} a las ${appointment.time} ha sido cancelada.`,
+      message: `Your appointment with doctor ${appointment.doctorId} scheduled for ${appointment.date} at ${appointment.time} has been canceled.`,
     });
 
     await this.notificationService.createNotification({
       recipientId: appointment.doctorId,
-      message: `La cita con el paciente ${appointment.patientId} programada para ${appointment.date} a las ${appointment.time} ha sido cancelada.`,
+      message: `The appointment with patient ${appointment.patientId} scheduled for ${appointment.date} at ${appointment.time} has been canceled.`,
     });
   }
 
-  // Reprogramar una cita
   async rescheduleAppointment(
     appointmentId: number,
     newDate: string,
@@ -69,13 +64,11 @@ export class AppointmentService {
       throw new Error("Appointment not found");
     }
 
-    // Actualizar estado de la cita original
     await this.appointmentRepository.updateAppointmentStatus(
       appointmentId,
       "Rescheduled"
     );
 
-    // Crear una nueva cita reprogramada
     await this.appointmentRepository.createAppointment({
       ...appointment,
       date: newDate,
@@ -83,24 +76,21 @@ export class AppointmentService {
       status: "Scheduled",
     });
 
-    // Crear notificaciones para el paciente y el doctor
     await this.notificationService.createNotification({
       recipientId: appointment.patientId,
-      message: `Tu cita con el doctor ${appointment.doctorId} ha sido reprogramada para ${newDate} a las ${newTime}.`,
+      message: `Your appointment wit the doctor ${appointment.doctorId} has been rescheduled for ${newDate} at ${newTime}.`,
     });
 
     await this.notificationService.createNotification({
       recipientId: appointment.doctorId,
-      message: `La cita con el paciente ${appointment.patientId} ha sido reprogramada para ${newDate} a las ${newTime}.`,
+      message: `The appointment with the patient ${appointment.patientId} has been rescheduled for ${newDate} at ${newTime}.`,
     });
   }
 
-  // Obtener agenda del doctor
   async getDoctorSchedule(doctorId: number): Promise<any[]> {
     return this.appointmentRepository.getDoctorSchedule(doctorId);
   }
 
-  // Obtener una cita por ID
   async getAppointmentById(appointmentId: number): Promise<Appointment | null> {
     return this.appointmentRepository.getAppointmentById(appointmentId);
   }

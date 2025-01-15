@@ -3,7 +3,7 @@ import sqlite3 from "sqlite3";
 import { Database, open } from "sqlite";
 import path from "path";
 
-@Service() // Este decorador es crucial para que `typedi` registre el servicio
+@Service()
 export class DatabaseService {
   private db: Database | null = null;
 
@@ -106,7 +106,6 @@ export class DatabaseService {
         `;
 
     try {
-      // Insertar especialidades
       await db.exec(`
                 INSERT INTO specialties (name)
                 SELECT 'Cardiology'
@@ -121,7 +120,6 @@ export class DatabaseService {
                 WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Neurology');
             `);
 
-      // Insertar departamentos
       await db.exec(`
                 INSERT INTO departments (name) VALUES
                 ('Emergency'),
@@ -130,7 +128,6 @@ export class DatabaseService {
                 ('Surgery');
             `);
 
-      // Asociar doctores con especialidades
       await db.exec(`
                 INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES
                 (2, 1), -- Jane Smith: Cardiology
@@ -138,14 +135,12 @@ export class DatabaseService {
                 (4, 2); -- Robert Brown: Dermatology
             `);
 
-      // Establecer disponibilidad de doctores
       await db.exec(`
                 INSERT INTO availability (doctorId, date, timeSlots) VALUES
                 (2, '2025-01-15', '["09:00", "10:00", "11:00"]'),
                 (4, '2025-01-16', '["14:00", "15:00", "16:00"]');
             `);
 
-      // Insertar citas
       await db.exec(`
                 INSERT INTO appointments (patientId, doctorId, date, time, reason, status) VALUES
                 (1, 2, '2025-01-15', '09:00', 'Consulta general', 'Scheduled'),
@@ -153,7 +148,6 @@ export class DatabaseService {
                 (1, 4, '2025-01-16', '14:00', 'Consulta dermatológica', 'Scheduled');
             `);
 
-      // Insertar registros en audit_log
       await db.exec(`
                 INSERT INTO audit_log (userId, action, details) VALUES
                 (1, 'CREATE_APPOINTMENT', 'Created appointment with ID 1'),

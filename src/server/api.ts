@@ -28,9 +28,8 @@ export class Api {
   }
 
   private initializeRoutes(): void {
-    // Rutas de usuario
     this.apiRouter.use("/users", this.userController.router);
-    this.apiRouter.use("/audit-log", this.auditLogController.router); // Rutas de auditoría
+    this.apiRouter.use("/audit-log", this.auditLogController.router);
     this.apiRouter.use("/appointments", this.appointmentController.router);
     this.apiRouter.use("/", this.availabilityController.router);
     this.apiRouter.use("/specialties", this.specialtyController.router);

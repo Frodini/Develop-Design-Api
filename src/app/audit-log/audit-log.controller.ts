@@ -14,11 +14,10 @@ export class AuditLogController {
   }
 
   private routes() {
-    // Endpoint para obtener los registros de auditoría
     this.router.get(
       "/",
       authenticateToken,
-      authorizeRoles(["Admin"]), // Solo los administradores pueden acceder
+      authorizeRoles(["Admin"]),
       async (req: Request, res: Response) => {
         try {
           const logs = await this.auditLogService.getLogs();

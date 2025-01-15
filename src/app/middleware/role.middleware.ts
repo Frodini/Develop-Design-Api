@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 
-// Usa el tipo extendido de Request
 interface AuthenticatedRequest extends Request {
   user?: { userId: number; role: string };
 }
