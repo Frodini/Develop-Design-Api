@@ -103,61 +103,35 @@ export class DatabaseService {
             details TEXT,
             FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS departments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, -- Identificador único para cada departamento
+            name TEXT NOT NULL UNIQUE             -- Nombre del departamento, único y obligatorio
+        );
         `;
 
-    try {
-      await db.exec(`
-                INSERT INTO specialties (name)
-                SELECT 'Cardiology'
-                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Cardiology');
-
-                INSERT INTO specialties (name)
-                SELECT 'Dermatology'
-                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Dermatology');
-
-                INSERT INTO specialties (name)
-                SELECT 'Neurology'
-                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Neurology');
-            `);
-
-      await db.exec(`
-                INSERT INTO departments (name) VALUES
-                ('Emergency'),
-                ('Outpatient'),
-                ('Inpatient'),
-                ('Surgery');
-            `);
-
-      await db.exec(`
-                INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES
-                (2, 1), -- Jane Smith: Cardiology
-                (2, 3), -- Jane Smith: Pediatrics
-                (4, 2); -- Robert Brown: Dermatology
-            `);
-
-      await db.exec(`
-                INSERT INTO availability (doctorId, date, timeSlots) VALUES
-                (2, '2025-01-15', '["09:00", "10:00", "11:00"]'),
-                (4, '2025-01-16', '["14:00", "15:00", "16:00"]');
-            `);
-
-      await db.exec(`
-                INSERT INTO appointments (patientId, doctorId, date, time, reason, status) VALUES
-                (1, 2, '2025-01-15', '09:00', 'Consulta general', 'Scheduled'),
-                (1, 2, '2025-01-15', '10:00', 'Consulta de seguimiento', 'Scheduled'),
-                (1, 4, '2025-01-16', '14:00', 'Consulta dermatológica', 'Scheduled');
-            `);
-
-      await db.exec(`
-                INSERT INTO audit_log (userId, action, details) VALUES
-                (1, 'CREATE_APPOINTMENT', 'Created appointment with ID 1'),
-                (1, 'CREATE_APPOINTMENT', 'Created appointment with ID 2'),
-                (2, 'SET_AVAILABILITY', 'Set availability for doctor ID 2 on 2025-01-15'),
-                (4, 'SET_AVAILABILITY', 'Set availability for doctor ID 4 on 2025-01-16'),
-                (1, 'LIST_SPECIALTIES', 'Listed all specialties'),
-                (1, 'FILTER_DOCTORS_BY_SPECIALTY', 'Filtered doctors by specialty ID 1');
-            `);
-    } catch (error: any) {}
     await db.exec(tableCreationScripts);
+
+    const defaultValuesScripts = `
+        INSERT INTO specialties (name)
+        SELECT 'Cardiology' WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Cardiology');
+        INSERT INTO specialties (name)
+        SELECT 'Dermatology' WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Dermatology');
+        INSERT INTO specialties (name)
+        SELECT 'Neurology' WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Neurology');
+        INSERT INTO specialties (name)
+        SELECT 'Pediatrics' WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Pediatrics');
+
+        INSERT INTO departments (name)
+        SELECT 'Emergency' WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Emergency');
+        INSERT INTO departments (name)
+        SELECT 'Surgery' WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Surgery');
+        INSERT INTO departments (name)
+        SELECT 'Radiology' WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Radiology');
+        INSERT INTO departments (name)
+        SELECT 'Pediatrics' WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Pediatrics');
+    `;
+
+    await db.exec(defaultValuesScripts);
   }
 }
