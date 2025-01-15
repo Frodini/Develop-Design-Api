@@ -7,7 +7,6 @@ export class AvailabilityService {
   constructor(private availabilityRepository: AvailabilityRepository) {}
 
   async setAvailability(availability: Availability): Promise<void> {
-    // Aquí podrías agregar validaciones adicionales (p. ej., fechas en el futuro)
     await this.availabilityRepository.setAvailability(availability);
   }
 

@@ -63,7 +63,10 @@ export class DatabaseService {
             patientId INTEGER NOT NULL,
             doctorId INTEGER NOT NULL,
             diagnosis TEXT,
+            prescriptions TEXT, -- Lista de recetas en formato JSON
             notes TEXT,
+            testResults TEXT, -- Lista de resultados de pruebas en formato JSON
+            ongoingTreatments TEXT, -- Lista de tratamientos en formato JSON
             FOREIGN KEY (patientId) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );

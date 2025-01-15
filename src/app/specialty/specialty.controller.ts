@@ -54,6 +54,7 @@ export class SpecialtyController {
           const loggedUserId = (req as any).user.userId;
           if (Number(doctorId) !== loggedUserId) {
             res.status(403).json({ error: "Forbidden: Unauthorized access" });
+            return;
           }
 
           await this.specialtyService.associateDoctorSpecialties(
