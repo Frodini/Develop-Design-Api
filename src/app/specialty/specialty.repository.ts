@@ -28,11 +28,10 @@ export class SpecialtyRepository {
   async getDoctorsBySpecialty(specialtyId: number): Promise<any[]> {
     const db = await this.dbService.connect();
     return await db.all(
-      `SELECT users.id AS doctorId, users.name AS doctorName, specialties.name AS specialty 
-             FROM doctor_specialties 
-             JOIN users ON doctor_specialties.doctorId = users.id
-             JOIN specialties ON doctor_specialties.specialtyId = specialties.id
-             WHERE specialties.id = ?`,
+      `SELECT users.id AS doctorId, users.name AS doctorName 
+       FROM doctor_specialties 
+       JOIN users ON doctor_specialties.doctorId = users.id 
+       WHERE doctor_specialties.specialtyId = ? AND users.role = 'Doctor'`,
       [specialtyId]
     );
   }
