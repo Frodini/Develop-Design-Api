@@ -28,13 +28,13 @@ export class UserService {
       password: hashedPassword,
     });
 
+    // Asociar especialidades solo para doctores
     if (user.role === "Doctor") {
       await this.userRepository.associateDoctorSpecialties(
         userId,
         user.specialties!
       );
     }
-
     return userId;
   }
 

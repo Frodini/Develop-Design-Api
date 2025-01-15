@@ -57,18 +57,23 @@ export class UserController {
               userId
             );
           }
-          // Registrar acción de auditoría
-          const loggedUserId = (req as any).user?.userId || 0;
-          await this.auditLogService.log(
-            loggedUserId,
-            "CREATE_USER",
-            `Created user with ID ${userId}`
-          );
 
-          res
-            .status(201)
-            .json({ userId, message: "User created successfully" });
+          if (userId > 0) {
+            // Registrar acción de auditoría
+            await this.auditLogService.log(
+              userId, // Sin usuario autenticado
+              "CREATE_USER",
+              `Created user with ID ${userId}`
+            );
+          }
+
+          res.status(201).json({
+            userId,
+            message: "User created successfully",
+            specialties,
+          });
         } catch (error: any) {
+          console.error("Error creating user:", error.message);
           res.status(400).json({ error: error.message });
         }
       }
