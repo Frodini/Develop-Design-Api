@@ -33,7 +33,7 @@ export class DatabaseService {
 
         CREATE TABLE IF NOT EXISTS specialties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
+            name TEXT NOT NULL UNIQUE
         );
 
         CREATE TABLE IF NOT EXISTS doctor_specialties (
@@ -105,11 +105,17 @@ export class DatabaseService {
     try {
       // Insertar especialidades
       await db.exec(`
-                INSERT INTO specialties (name) VALUES
-                ('Cardiology'),
-                ('Dermatology'),
-                ('Pediatrics'),
-                ('Neurology');
+                INSERT INTO specialties (name)
+                SELECT 'Cardiology'
+                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Cardiology');
+
+                INSERT INTO specialties (name)
+                SELECT 'Dermatology'
+                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Dermatology');
+
+                INSERT INTO specialties (name)
+                SELECT 'Neurology'
+                WHERE NOT EXISTS (SELECT 1 FROM specialties WHERE name = 'Neurology');
             `);
 
       // Insertar departamentos

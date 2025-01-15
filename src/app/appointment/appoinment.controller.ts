@@ -33,6 +33,7 @@ export class AppointmentController {
               error:
                 "Forbidden: Patients can only create their own appointments",
             });
+            return;
           }
 
           const appointmentId = await this.appointmentService.createAppointment(
@@ -75,6 +76,7 @@ export class AppointmentController {
               error:
                 "Forbidden: Patients can only cancel their own appointments",
             });
+            return;
           }
 
           await this.appointmentService.cancelAppointment(
@@ -117,6 +119,7 @@ export class AppointmentController {
               error:
                 "Forbidden: Patients can only reschedule their own appointments",
             });
+            return;
           }
 
           await this.appointmentService.rescheduleAppointment(
@@ -159,6 +162,7 @@ export class AppointmentController {
             res.status(403).json({
               error: "Forbidden: Doctors can only access their own schedule",
             });
+            return;
           }
 
           const schedule = await this.appointmentService.getDoctorSchedule(

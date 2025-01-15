@@ -94,6 +94,7 @@ export class SpecialtyController {
             res
               .status(404)
               .json({ error: "No doctors found for this specialty" });
+            return;
           }
 
           // Registrar acción en audit-log

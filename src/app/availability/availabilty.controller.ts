@@ -31,9 +31,11 @@ export class AvailabilityController {
           // Validar que el doctor autenticado está configurando su propia disponibilidad
           const loggedUserId = (req as any).user.userId;
           if (Number(doctorId) !== loggedUserId) {
+            // Enviar error y detener el flujo de ejecución
             res.status(403).json({
               error: "Forbidden: Doctors can only set their own availability",
             });
+            return;
           }
 
           // Establecer disponibilidad
@@ -54,7 +56,10 @@ export class AvailabilityController {
 
           res.status(200).json({ message: "Availability set successfully" });
         } catch (error: any) {
-          res.status(400).json({ error: error.message });
+          console.error("Error setting availability:", error.message);
+          res
+            .status(500)
+            .json({ error: "An error occurred while setting availability" });
         }
       }
     );
