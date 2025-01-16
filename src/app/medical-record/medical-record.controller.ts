@@ -102,7 +102,9 @@ export class MedicalRecordController {
 
           res.status(200).json(record);
         } catch (error: any) {
-          res.status(403).json({ error: error.message });
+          if (!res.headersSent) {
+            res.status(403).json({ error: error.message });
+          }
         }
       }
     );
