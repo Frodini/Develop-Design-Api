@@ -18,7 +18,6 @@ export class MedicalRecordController {
   }
 
   private routes() {
-    // Crear un expediente médico
     this.router.post(
       "/",
       authenticateToken,
@@ -29,7 +28,6 @@ export class MedicalRecordController {
             req.body
           );
 
-          // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -46,7 +44,6 @@ export class MedicalRecordController {
       }
     );
 
-    // Actualizar un expediente médico
     this.router.put(
       "/:recordId",
       authenticateToken,
@@ -60,7 +57,6 @@ export class MedicalRecordController {
             req.body
           );
 
-          // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -78,7 +74,6 @@ export class MedicalRecordController {
       }
     );
 
-    // Consultar un expediente médico
     this.router.get(
       "/:recordId",
       authenticateToken,
@@ -107,7 +102,9 @@ export class MedicalRecordController {
 
           res.status(200).json(record);
         } catch (error: any) {
-          res.status(403).json({ error: error.message });
+          if (!res.headersSent) {
+            res.status(403).json({ error: error.message });
+          }
         }
       }
     );

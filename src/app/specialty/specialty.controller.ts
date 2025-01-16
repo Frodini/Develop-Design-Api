@@ -18,7 +18,6 @@ export class SpecialtyController {
   }
 
   private routes() {
-    // Listar todas las especialidades
     this.router.get(
       "/",
       authenticateToken,
@@ -26,7 +25,6 @@ export class SpecialtyController {
         try {
           const specialties = await this.specialtyService.getAllSpecialties();
 
-          // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -41,7 +39,6 @@ export class SpecialtyController {
       }
     );
 
-    // Asociar especialidades a un doctor
     this.router.post(
       "/doctors/:doctorId",
       authenticateToken,
@@ -62,7 +59,6 @@ export class SpecialtyController {
             specialtyIds
           );
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "ASSOCIATE_SPECIALTIES",
@@ -80,7 +76,6 @@ export class SpecialtyController {
       }
     );
 
-    // Filtrar doctores por especialidad
     this.router.get(
       "/:specialtyId/doctors",
       authenticateToken,
@@ -98,7 +93,6 @@ export class SpecialtyController {
             return;
           }
 
-          // Registrar acción en audit-log
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -106,7 +100,6 @@ export class SpecialtyController {
             `Filtered doctors by specialty ID ${specialtyId}`
           );
 
-          // Formatear respuesta, si es necesario
           res.status(200).json(doctors);
         } catch (error: any) {
           res.status(500).json({ error: error.message });

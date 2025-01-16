@@ -9,16 +9,13 @@ import listEndpoints from "express-list-endpoints";
 
 const app: Application = express();
 
-// Middlewares
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-// Rutas principales
 const api = Container.get(Api);
 app.use("/api", api.getApiRouter());
 
-// Inicializar base de datos
 (async () => {
   try {
     const dbService = Container.get(DatabaseService);
@@ -30,10 +27,9 @@ app.use("/api", api.getApiRouter());
   }
 })();
 
-// Configuración del puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-console.log(listEndpoints(app)); //Permite ver todas las rutas de la aplicación
+console.log(listEndpoints(app));

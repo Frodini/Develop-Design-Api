@@ -5,7 +5,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import { authorizeRoles } from "../middleware/role.middleware";
 import { check, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { AuditLogService } from "../audit-log/audit-log.service"; // Asegúrate de que la ruta sea correcta
+import { AuditLogService } from "../audit-log/audit-log.service";
 
 const handleValidationErrors: RequestHandler = async (
   req: Request,
@@ -26,7 +26,7 @@ export class UserController {
 
   constructor(
     private userService: UserService,
-    private auditLogService: AuditLogService // Inyección del servicio de auditoría
+    private auditLogService: AuditLogService
   ) {
     this.router = Router();
     this.routes();
@@ -59,9 +59,8 @@ export class UserController {
           }
 
           if (userId > 0) {
-            // Registrar acción de auditoría
             await this.auditLogService.log(
-              userId, // Sin usuario autenticado
+              userId,
               "CREATE_USER",
               `Created user with ID ${userId}`
             );
@@ -85,9 +84,8 @@ export class UserController {
         const token = await this.userService.authenticateUser(email, password);
 
         if (token) {
-          // Registrar acción de auditoría
-          const user = await this.userService.getUserByEmail(email); // Asegúrate de tener este método en `UserService`
-          const loggedUserId = user?.id || 0; // Obtener el ID del usuario autenticado
+          const user = await this.userService.getUserByEmail(email);
+          const loggedUserId = user?.id || 0;
 
           await this.auditLogService.log(
             loggedUserId,
@@ -104,7 +102,6 @@ export class UserController {
       }
     });
 
-    // Actualizar usuario
     this.router.put(
       "/:userId",
       authenticateToken,
@@ -126,7 +123,6 @@ export class UserController {
           const { userId } = req.params;
           await this.userService.updateUser(Number(userId), req.body);
 
-          // Registrar acción de auditoría
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -141,7 +137,6 @@ export class UserController {
       }
     );
 
-    // Consultar usuarios
     this.router.get(
       "/",
       authenticateToken,
@@ -160,7 +155,6 @@ export class UserController {
             sort: sort as string,
           });
 
-          // Registrar acción de auditoría
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,
@@ -175,7 +169,6 @@ export class UserController {
       }
     );
 
-    // Consultar usuario por ID
     this.router.get(
       "/:userId",
       authenticateToken,
@@ -197,7 +190,6 @@ export class UserController {
 
           const user = await this.userService.getUserById(Number(userId));
           if (user) {
-            // Registrar acción de auditoría
             await this.auditLogService.log(
               loggedUserId,
               "GET_USER",
@@ -214,7 +206,6 @@ export class UserController {
       }
     );
 
-    // Eliminar usuario
     this.router.delete(
       "/:userId",
       authenticateToken,
@@ -224,7 +215,6 @@ export class UserController {
           const { userId } = req.params;
           await this.userService.deleteUser(Number(userId));
 
-          // Registrar acción de auditoría
           const loggedUserId = (req as any).user.userId;
           await this.auditLogService.log(
             loggedUserId,

@@ -18,7 +18,6 @@ export class AvailabilityController {
   }
 
   private routes() {
-    // Establecer disponibilidad (solo doctores)
     this.router.post(
       "/doctors/:doctorId/availability",
       authenticateToken,
@@ -28,24 +27,20 @@ export class AvailabilityController {
           const { doctorId } = req.params;
           const { date, timeSlots } = req.body;
 
-          // Validar que el doctor autenticado está configurando su propia disponibilidad
           const loggedUserId = (req as any).user.userId;
           if (Number(doctorId) !== loggedUserId) {
-            // Enviar error y detener el flujo de ejecución
             res.status(403).json({
               error: "Forbidden: Doctors can only set their own availability",
             });
             return;
           }
 
-          // Establecer disponibilidad
           await this.availabilityService.setAvailability({
             doctorId: Number(doctorId),
             date,
             timeSlots,
           });
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "SET_AVAILABILITY",

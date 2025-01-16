@@ -18,7 +18,6 @@ export class AppointmentController {
   }
 
   private routes() {
-    // Crear cita (solo pacientes)
     this.router.post(
       "/",
       authenticateToken,
@@ -27,7 +26,6 @@ export class AppointmentController {
         try {
           const loggedUserId = (req as any).user.userId;
 
-          // Asegurarse de que el paciente autenticado está creando su propia cita
           if (req.body.patientId !== loggedUserId) {
             res.status(403).json({
               error:
@@ -40,7 +38,6 @@ export class AppointmentController {
             req.body
           );
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "CREATE_APPOINTMENT",
@@ -57,7 +54,6 @@ export class AppointmentController {
       }
     );
 
-    // Cancelar cita (solo pacientes)
     this.router.delete(
       "/:appointmentId",
       authenticateToken,
@@ -67,7 +63,6 @@ export class AppointmentController {
           const { appointmentId } = req.params;
           const loggedUserId = (req as any).user.userId;
 
-          // Verificar si el paciente autenticado es el propietario de la cita
           const appointment = await this.appointmentService.getAppointmentById(
             Number(appointmentId)
           );
@@ -83,7 +78,6 @@ export class AppointmentController {
             Number(appointmentId)
           );
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "CANCEL_APPOINTMENT",
@@ -99,7 +93,6 @@ export class AppointmentController {
       }
     );
 
-    // Reprogramar cita (solo pacientes)
     this.router.put(
       "/:appointmentId",
       authenticateToken,
@@ -110,7 +103,6 @@ export class AppointmentController {
           const { newDate, newTime } = req.body;
           const loggedUserId = (req as any).user.userId;
 
-          // Verificar si el paciente autenticado es el propietario de la cita
           const appointment = await this.appointmentService.getAppointmentById(
             Number(appointmentId)
           );
@@ -128,7 +120,6 @@ export class AppointmentController {
             newTime
           );
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "RESCHEDULE_APPOINTMENT",
@@ -144,7 +135,6 @@ export class AppointmentController {
       }
     );
 
-    // Consultar agenda del doctor (solo doctores y administradores)
     this.router.get(
       "/doctors/:doctorId/schedule",
       authenticateToken,
@@ -154,7 +144,6 @@ export class AppointmentController {
           const { doctorId } = req.params;
           const loggedUserId = (req as any).user.userId;
 
-          // Verificar si el doctor autenticado está consultando su propia agenda (excepto Admin)
           if (
             (req as any).user.role === "Doctor" &&
             Number(doctorId) !== loggedUserId
@@ -169,7 +158,6 @@ export class AppointmentController {
             Number(doctorId)
           );
 
-          // Registrar acción en audit-log
           await this.auditLogService.log(
             loggedUserId,
             "GET_DOCTOR_SCHEDULE",
