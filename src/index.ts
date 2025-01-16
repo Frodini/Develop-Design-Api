@@ -1,3 +1,3 @@
 import "./server/server";
 
-console.log("Node API is up and running!");
+console.log("The project is up and running!");
