@@ -34,9 +34,12 @@ describe("UserController", () => {
   let userService: jest.Mocked<UserService>;
   let auditLogService: jest.Mocked<AuditLogService>;
   let userRepository: jest.Mocked<UserRepository>;
+  let originalConsoleError: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    originalConsoleError = console.error;
+    console.error = jest.fn();
 
     const dbServiceMock = {} as jest.Mocked<DatabaseService>;
     userRepository = new UserRepository(
@@ -205,6 +208,73 @@ describe("UserController", () => {
       expect(response.status).toBe(200);
       expect(response.body.message).toBe("User deleted successfully");
       expect(userService.deleteUser).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe("POST /users", () => {
+    it("should return 400 if userService.createUser throws an error", async () => {
+      userService.createUser.mockRejectedValue(new Error("Database error"));
+
+      const response = await request(app).post("/users").send({
+        name: "John Doe",
+        email: "john.doe@example.com",
+        password: "securepassword",
+        role: "Patient",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Database error");
+    });
+  });
+
+  describe("DELETE /users/:userId", () => {
+    it("should return 400 if user does not exist", async () => {
+      userService.deleteUser.mockRejectedValue(
+        new Error("Error deleting user")
+      );
+
+      const response = await request(app)
+        .delete("/users/999")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Error deleting user");
+    });
+
+    it("should return 400 if userService.deleteUser throws an error", async () => {
+      userService.deleteUser.mockRejectedValue(
+        new Error("Error deleting user")
+      );
+
+      const response = await request(app)
+        .delete("/users/1")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Error deleting user");
+    });
+  });
+
+  describe("Input Validation", () => {
+    it("should return 400 for missing fields", async () => {
+      const response = await request(app).post("/users").send({
+        email: "john.doe@example.com",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+    });
+
+    it("should return 400 for invalid password length", async () => {
+      const response = await request(app).post("/users").send({
+        name: "John Doe",
+        email: "john.doe@example.com",
+        password: "123", // Contraseña demasiado corta
+        role: "Patient",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
     });
   });
 });

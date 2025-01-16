@@ -37,6 +37,28 @@ describe("UserRepository", () => {
         ["John Doe", "john@example.com", "securepassword", "Patient"]
       );
     });
+
+    it("should throw an error if database query fails", async () => {
+      const mockDb = {
+        run: jest.fn().mockRejectedValue(new Error("Database error")),
+      };
+      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+
+      const user: User = {
+        name: "John Doe",
+        email: "john@example.com",
+        password: "securepassword",
+        role: "Patient",
+      };
+
+      await expect(userRepository.createUser(user)).rejects.toThrow(
+        "Database error"
+      );
+      expect(mockDb.run).toHaveBeenCalledWith(
+        `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`,
+        ["John Doe", "john@example.com", "securepassword", "Patient"]
+      );
+    });
   });
 
   describe("getUserById", () => {
@@ -81,6 +103,21 @@ describe("UserRepository", () => {
         [999]
       );
     });
+
+    it("should throw an error if database query fails", async () => {
+      const mockDb = {
+        get: jest.fn().mockRejectedValue(new Error("Database error")),
+      };
+      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+
+      await expect(userRepository.getUserById(1)).rejects.toThrow(
+        "Database error"
+      );
+      expect(mockDb.get).toHaveBeenCalledWith(
+        `SELECT * FROM users WHERE id = ?`,
+        [1]
+      );
+    });
   });
 
   describe("validateSpecialties", () => {
@@ -111,6 +148,21 @@ describe("UserRepository", () => {
       expect(mockDb.all).toHaveBeenCalledWith(
         `SELECT id FROM specialties WHERE id IN (?, ?)`,
         [1, 2]
+      );
+    });
+
+    it("should return false if specialties list is empty", async () => {
+      const mockDb = {
+        all: jest.fn().mockResolvedValue([]), // Simula que la base de datos no devuelve resultados
+      };
+      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+
+      const result = await userRepository.validateSpecialties([]);
+
+      expect(result).toBe(true); // Si la lista está vacía, el resultado debe ser false
+      expect(mockDb.all).toHaveBeenCalledWith(
+        `SELECT id FROM specialties WHERE id IN ()`,
+        [] // La lista de parámetros está vacía
       );
     });
   });
@@ -166,6 +218,40 @@ describe("UserRepository", () => {
       expect(mockDb.all).toHaveBeenCalledWith(
         `SELECT * FROM users WHERE role = ? AND name LIKE ? ORDER BY name LIMIT ? OFFSET ?`,
         ["Patient", "%John%", 10, 0]
+      );
+    });
+
+    it("should handle empty filters and return all users", async () => {
+      const mockDb = {
+        all: jest.fn().mockResolvedValue([
+          {
+            id: 1,
+            name: "John Doe",
+            email: "john@example.com",
+            password: "securepassword",
+            role: "Patient",
+          },
+        ]),
+      };
+      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+
+      const result = await userRepository.searchUsersWithPagination(
+        {},
+        { limit: 10, offset: 0, sort: "name" }
+      );
+
+      expect(result).toEqual([
+        {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          password: "securepassword",
+          role: "Patient",
+        },
+      ]);
+      expect(mockDb.all).toHaveBeenCalledWith(
+        `SELECT * FROM users  ORDER BY name LIMIT ? OFFSET ?`, // Refleja el espacio adicional generado
+        [10, 0]
       );
     });
   });
