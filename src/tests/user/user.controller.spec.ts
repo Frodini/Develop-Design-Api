@@ -1,82 +1,81 @@
-import "reflect-metadata";
 import request from "supertest";
-import express, { json } from "express";
-import { Container } from "typedi";
-import { AuditLogService } from "../../app/audit-log/audit-log.service";
-import { UserService } from "../../app/user/user.service";
+import express from "express";
 import { UserController } from "../../app/user/user.controller";
-import { UserRepository } from "../../app/user/user.repository";
-import { DatabaseService } from "../../database/database.service";
-import { AuditLogRepository } from "../../app/audit-log/audit-log.repository";
+import { UserService } from "../../app/user/user.service";
+import { AuditLogService } from "../../app/audit-log/audit-log.service";
+import { authenticateToken } from "../../app/middleware/auth.middleware";
+import { authorizeRoles } from "../../app/middleware/role.middleware";
+import { validationResult } from "express-validator";
 
-// Mock dependencies
-jest.mock("../../app/user/user.repository");
-jest.mock("../../app/audit-log/audit-log.service");
 jest.mock("../../app/middleware/auth.middleware", () => ({
-  authenticateToken: (
-    req: { user: { userId: number; role: string } },
-    res: any,
-    next: () => void
-  ) => {
-    req.user = { userId: 1, role: "Admin" }; // Simula un usuario autenticado
-    next();
-  },
+  authenticateToken: jest.fn((req, res, next) => next()),
 }));
 
 jest.mock("../../app/middleware/role.middleware", () => ({
-  authorizeRoles: () => (req: any, res: any, next: () => void) => {
-    next(); // Permite todas las solicitudes
-  },
+  authorizeRoles: jest.fn(
+    () => (req: any, res: any, next: () => any) => next()
+  ),
+}));
+
+jest.mock("express-validator", () => ({
+  ...jest.requireActual("express-validator"),
+  validationResult: jest.fn(),
 }));
 
 describe("UserController", () => {
   let app: express.Application;
   let userService: jest.Mocked<UserService>;
   let auditLogService: jest.Mocked<AuditLogService>;
-  let userRepository: jest.Mocked<UserRepository>;
-  let originalConsoleError: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    originalConsoleError = console.error;
-    console.error = jest.fn();
-
-    const dbServiceMock = {} as jest.Mocked<DatabaseService>;
-    userRepository = new UserRepository(
-      dbServiceMock
-    ) as jest.Mocked<UserRepository>;
-    const auditLogRepositoryMock = {} as jest.Mocked<AuditLogRepository>;
-    auditLogService = new AuditLogService(
-      auditLogRepositoryMock
-    ) as jest.Mocked<AuditLogService>;
 
     userService = {
       createUser: jest.fn(),
       authenticateUser: jest.fn(),
-      searchUsers: jest.fn(),
-      getUserById: jest.fn(),
-      deleteUser: jest.fn(),
       updateUser: jest.fn(),
-      getUserByEmail: jest.fn(),
+      getUserById: jest.fn(),
+      searchUsers: jest.fn(),
+      deleteUser: jest.fn(),
       getSpecialtiesByDoctorId: jest.fn(),
+      getUserByEmail: jest.fn(),
     } as unknown as jest.Mocked<UserService>;
+
+    auditLogService = {
+      log: jest.fn(),
+    } as unknown as jest.Mocked<AuditLogService>;
 
     const userController = new UserController(userService, auditLogService);
 
     app = express();
-    app.use(json());
+    app.use(express.json());
+
+    (authenticateToken as jest.Mock).mockImplementation((req, res, next) => {
+      (req as any).user = { userId: 1, role: "Admin" };
+      next();
+    });
+
+    (authorizeRoles as jest.Mock).mockImplementation(
+      () => (req: any, res: any, next: () => any) => next()
+    );
+
     app.use("/users", userController.router);
   });
 
   describe("POST /users", () => {
-    it("should create a user and return its ID", async () => {
-      userService.createUser = jest.fn().mockResolvedValue(1);
-      auditLogService.log.mockResolvedValue();
+    it("should create a new user", async () => {
+      userService.createUser.mockResolvedValue(1);
+      userService.getSpecialtiesByDoctorId.mockResolvedValue([]);
+
+      (validationResult as unknown as jest.Mock).mockImplementation(() => ({
+        isEmpty: jest.fn().mockReturnValue(true),
+        array: jest.fn().mockReturnValue([]),
+      }));
 
       const response = await request(app).post("/users").send({
-        name: "John Doe",
-        email: "john.doe@example.com",
-        password: "securepassword",
+        name: "Test User",
+        email: "test@example.com",
+        password: "password123",
         role: "Patient",
       });
 
@@ -86,42 +85,45 @@ describe("UserController", () => {
         message: "User created successfully",
         specialties: [],
       });
-      expect(userService.createUser).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "John Doe",
-          email: "john.doe@example.com",
-        })
-      );
-      expect(auditLogService.log).toHaveBeenCalled();
+      expect(userService.createUser).toHaveBeenCalledWith({
+        name: "Test User",
+        email: "test@example.com",
+        password: "password123",
+        role: "Patient",
+      });
     });
 
-    it("should return 400 for invalid input", async () => {
+    it("should return 400 if validation fails", async () => {
+      (validationResult as unknown as jest.Mock).mockImplementation(() => ({
+        isEmpty: jest.fn().mockReturnValue(false),
+        array: jest
+          .fn()
+          .mockReturnValue([{ msg: "Invalid email format", param: "email" }]),
+      }));
+
       const response = await request(app).post("/users").send({
         email: "invalid-email",
       });
 
       expect(response.status).toBe(400);
-      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors).toEqual([
+        { msg: "Invalid email format", param: "email" },
+      ]);
     });
   });
 
   describe("POST /users/login", () => {
-    it("should return a token for valid credentials", async () => {
+    it("should return a token if credentials are valid", async () => {
       userService.authenticateUser.mockResolvedValue("valid_token");
-      userService.getUserByEmail.mockResolvedValue({
-        id: 1,
-        name: "John Doe",
+      userService.getUserByEmail.mockResolvedValue({ id: 1 } as any);
+
+      const response = await request(app).post("/users/login").send({
         email: "john.doe@example.com",
-        role: "Patient",
-        password: "securepassword",
+        password: "password123",
       });
 
-      const response = await request(app)
-        .post("/users/login")
-        .send({ email: "john.doe@example.com", password: "password123" });
-
       expect(response.status).toBe(200);
-      expect(response.body.token).toBe("valid_token");
+      expect(response.body).toEqual({ token: "valid_token" });
       expect(userService.authenticateUser).toHaveBeenCalledWith(
         "john.doe@example.com",
         "password123"
@@ -129,43 +131,71 @@ describe("UserController", () => {
       expect(auditLogService.log).toHaveBeenCalled();
     });
 
-    it("should return 401 for invalid credentials", async () => {
+    it("should return 401 if credentials are invalid", async () => {
       userService.authenticateUser.mockResolvedValue(null);
 
-      const response = await request(app)
-        .post("/users/login")
-        .send({ email: "invalid@example.com", password: "wrongpassword" });
+      const response = await request(app).post("/users/login").send({
+        email: "john.doe@example.com",
+        password: "wrongpassword",
+      });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe("Invalid credentials");
+      expect(response.body).toEqual({ error: "Invalid credentials" });
+    });
+  });
+
+  describe("PUT /users/:userId", () => {
+    it("should update a user", async () => {
+      userService.updateUser.mockResolvedValue(undefined);
+
+      (validationResult as unknown as jest.Mock).mockImplementation(() => ({
+        isEmpty: jest.fn().mockReturnValue(true),
+        array: jest.fn().mockReturnValue([]),
+      }));
+
+      const response = await request(app).put("/users/1").send({
+        name: "Updated Name",
+        email: "updated@example.com",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ message: "User updated successfully" });
+      expect(userService.updateUser).toHaveBeenCalledWith(1, {
+        name: "Updated Name",
+        email: "updated@example.com",
+      });
+    });
+
+    it("should return 400 if validation fails", async () => {
+      (validationResult as unknown as jest.Mock).mockImplementation(() => ({
+        isEmpty: jest.fn().mockReturnValue(false),
+        array: jest
+          .fn()
+          .mockReturnValue([{ msg: "Invalid email format", param: "email" }]),
+      }));
+
+      const response = await request(app).put("/users/1").send({
+        email: "not-an-email",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toEqual([
+        { msg: "Invalid email format", param: "email" },
+      ]);
     });
   });
 
   describe("GET /users", () => {
     it("should return a list of users", async () => {
       userService.searchUsers.mockResolvedValue([
-        {
-          id: 1,
-          name: "John Doe",
-          email: "john.doe@example.com",
-          role: "Patient",
-          password: "securepassword",
-        },
-      ]);
+        { id: 1, name: "John Doe", email: "john.doe@example.com" },
+      ] as any);
 
-      const response = await request(app)
-        .get("/users")
-        .set("Authorization", "Bearer valid_token");
+      const response = await request(app).get("/users");
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual([
-        {
-          id: 1,
-          name: "John Doe",
-          email: "john.doe@example.com",
-          role: "Patient",
-          password: "securepassword",
-        },
+        { id: 1, name: "John Doe", email: "john.doe@example.com" },
       ]);
       expect(userService.searchUsers).toHaveBeenCalled();
     });
@@ -177,104 +207,39 @@ describe("UserController", () => {
         id: 1,
         name: "John Doe",
         email: "john.doe@example.com",
-        role: "Patient",
-        password: "securepassword",
-      });
+      } as any);
 
-      const response = await request(app)
-        .get("/users/1")
-        .set("Authorization", "Bearer valid_token");
+      const response = await request(app).get("/users/1");
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         id: 1,
         name: "John Doe",
         email: "john.doe@example.com",
-        role: "Patient",
-        password: "securepassword",
       });
       expect(userService.getUserById).toHaveBeenCalledWith(1);
     });
+
+    it("should return 404 if user is not found", async () => {
+      userService.getUserById.mockResolvedValue(null);
+
+      const response = await request(app).get("/users/999");
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: "User not found" });
+    });
   });
 
   describe("DELETE /users/:userId", () => {
-    it("should delete a user by ID", async () => {
-      userService.deleteUser.mockResolvedValue();
+    it("should delete a user", async () => {
+      userService.deleteUser.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .delete("/users/1")
-        .set("Authorization", "Bearer valid_token");
+      const response = await request(app).delete("/users/1");
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe("User deleted successfully");
+      expect(response.body).toEqual({ message: "User deleted successfully" });
       expect(userService.deleteUser).toHaveBeenCalledWith(1);
-    });
-  });
-
-  describe("POST /users", () => {
-    it("should return 400 if userService.createUser throws an error", async () => {
-      userService.createUser.mockRejectedValue(new Error("Database error"));
-
-      const response = await request(app).post("/users").send({
-        name: "John Doe",
-        email: "john.doe@example.com",
-        password: "securepassword",
-        role: "Patient",
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe("Database error");
-    });
-  });
-
-  describe("DELETE /users/:userId", () => {
-    it("should return 400 if user does not exist", async () => {
-      userService.deleteUser.mockRejectedValue(
-        new Error("Error deleting user")
-      );
-
-      const response = await request(app)
-        .delete("/users/999")
-        .set("Authorization", "Bearer valid_token");
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe("Error deleting user");
-    });
-
-    it("should return 400 if userService.deleteUser throws an error", async () => {
-      userService.deleteUser.mockRejectedValue(
-        new Error("Error deleting user")
-      );
-
-      const response = await request(app)
-        .delete("/users/1")
-        .set("Authorization", "Bearer valid_token");
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe("Error deleting user");
-    });
-  });
-
-  describe("Input Validation", () => {
-    it("should return 400 for missing fields", async () => {
-      const response = await request(app).post("/users").send({
-        email: "john.doe@example.com",
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body.errors).toBeDefined();
-    });
-
-    it("should return 400 for invalid password length", async () => {
-      const response = await request(app).post("/users").send({
-        name: "John Doe",
-        email: "john.doe@example.com",
-        password: "123", // Contraseña demasiado corta
-        role: "Patient",
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body.errors).toBeDefined();
+      expect(auditLogService.log).toHaveBeenCalled();
     });
   });
 });

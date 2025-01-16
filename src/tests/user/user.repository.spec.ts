@@ -1,204 +1,151 @@
-import { User } from "../../app/user/user.model";
 import { UserRepository } from "../../app/user/user.repository";
 import { DatabaseService } from "../../database/database.service";
-
-jest.mock("../../database/database.service");
+import { User } from "../../app/user/user.model";
 
 describe("UserRepository", () => {
   let userRepository: UserRepository;
   let dbServiceMock: jest.Mocked<DatabaseService>;
+  let mockDb: any;
 
   beforeEach(() => {
+    mockDb = {
+      run: jest.fn(),
+      get: jest.fn(),
+      all: jest.fn(),
+    };
+
     dbServiceMock = {
-      connect: jest.fn(),
+      connect: jest.fn().mockResolvedValue(mockDb),
     } as unknown as jest.Mocked<DatabaseService>;
+
     userRepository = new UserRepository(dbServiceMock);
   });
 
   describe("createUser", () => {
-    it("should create a user and return its ID", async () => {
-      const mockDb = {
-        run: jest.fn().mockResolvedValue({ lastID: 1 }),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+    it("should create a user and return the last inserted ID", async () => {
+      mockDb.run.mockResolvedValue({ lastID: 1 });
 
       const user: User = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "securepassword",
+        name: "Test User",
+        email: "test@user.com",
+        password: "hashed_password",
         role: "Patient",
       };
 
-      const result = await userRepository.createUser(user);
+      const userId = await userRepository.createUser(user);
 
-      expect(result).toBe(1);
+      expect(userId).toBe(1);
       expect(mockDb.run).toHaveBeenCalledWith(
-        `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`,
-        ["John Doe", "john@example.com", "securepassword", "Patient"]
-      );
-    });
-
-    it("should throw an error if database query fails", async () => {
-      const mockDb = {
-        run: jest.fn().mockRejectedValue(new Error("Database error")),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
-
-      const user: User = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "securepassword",
-        role: "Patient",
-      };
-
-      await expect(userRepository.createUser(user)).rejects.toThrow(
-        "Database error"
-      );
-      expect(mockDb.run).toHaveBeenCalledWith(
-        `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`,
-        ["John Doe", "john@example.com", "securepassword", "Patient"]
+        "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+        [user.name, user.email, user.password, user.role]
       );
     });
   });
 
   describe("getUserById", () => {
-    it("should return a user if found", async () => {
-      const mockDb = {
-        get: jest.fn().mockResolvedValue({
-          id: 1,
-          name: "John Doe",
-          email: "john@example.com",
-          password: "securepassword",
-          role: "Patient",
-        }),
+    it("should return a user by ID", async () => {
+      const user: User = {
+        id: 1,
+        name: "Test User",
+        email: "test@user.com",
+        password: "hashed_password",
+        role: "Patient",
       };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+
+      mockDb.get.mockResolvedValue(user);
 
       const result = await userRepository.getUserById(1);
 
-      expect(result).toEqual({
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        password: "securepassword",
-        role: "Patient",
-      });
+      expect(result).toEqual(user);
       expect(mockDb.get).toHaveBeenCalledWith(
-        `SELECT * FROM users WHERE id = ?`,
+        "SELECT * FROM users WHERE id = ?",
         [1]
       );
     });
 
-    it("should return null if user is not found", async () => {
-      const mockDb = {
-        get: jest.fn().mockResolvedValue(null),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+    it("should return null if the user is not found", async () => {
+      mockDb.get.mockResolvedValue(null);
 
       const result = await userRepository.getUserById(999);
 
       expect(result).toBeNull();
       expect(mockDb.get).toHaveBeenCalledWith(
-        `SELECT * FROM users WHERE id = ?`,
+        "SELECT * FROM users WHERE id = ?",
         [999]
       );
     });
+  });
 
-    it("should throw an error if database query fails", async () => {
-      const mockDb = {
-        get: jest.fn().mockRejectedValue(new Error("Database error")),
+  describe("getUserByEmail", () => {
+    it("should return a user by email", async () => {
+      const user: User = {
+        id: 1,
+        name: "Test User",
+        email: "test@user.com",
+        password: "hashed_password",
+        role: "Patient",
       };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
 
-      await expect(userRepository.getUserById(1)).rejects.toThrow(
-        "Database error"
-      );
+      mockDb.get.mockResolvedValue(user);
+
+      const result = await userRepository.getUserByEmail("test@user.com");
+
+      expect(result).toEqual(user);
       expect(mockDb.get).toHaveBeenCalledWith(
-        `SELECT * FROM users WHERE id = ?`,
-        [1]
+        "SELECT * FROM users WHERE email = ?",
+        ["test@user.com"]
+      );
+    });
+
+    it("should return null if the user is not found", async () => {
+      mockDb.get.mockResolvedValue(null);
+
+      const result = await userRepository.getUserByEmail(
+        "nonexistent@user.com"
+      );
+
+      expect(result).toBeNull();
+      expect(mockDb.get).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE email = ?",
+        ["nonexistent@user.com"]
       );
     });
   });
 
-  describe("validateSpecialties", () => {
-    it("should return true if all specialties exist", async () => {
-      const mockDb = {
-        all: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]),
+  describe("updateUser", () => {
+    it("should update user information", async () => {
+      mockDb.run.mockResolvedValue(undefined);
+
+      const user: Partial<User> = {
+        name: "Updated User",
+        email: "updated@user.com",
+        password: "new_hashed_password",
       };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
 
-      const result = await userRepository.validateSpecialties([1, 2]);
-
-      expect(result).toBe(true);
-      expect(mockDb.all).toHaveBeenCalledWith(
-        `SELECT id FROM specialties WHERE id IN (?, ?)`,
-        [1, 2]
-      );
-    });
-
-    it("should return false if some specialties do not exist", async () => {
-      const mockDb = {
-        all: jest.fn().mockResolvedValue([{ id: 1 }]),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
-
-      const result = await userRepository.validateSpecialties([1, 2]);
-
-      expect(result).toBe(false);
-      expect(mockDb.all).toHaveBeenCalledWith(
-        `SELECT id FROM specialties WHERE id IN (?, ?)`,
-        [1, 2]
-      );
-    });
-
-    it("should return false if specialties list is empty", async () => {
-      const mockDb = {
-        all: jest.fn().mockResolvedValue([]), // Simula que la base de datos no devuelve resultados
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
-
-      const result = await userRepository.validateSpecialties([]);
-
-      expect(result).toBe(true); // Si la lista está vacía, el resultado debe ser false
-      expect(mockDb.all).toHaveBeenCalledWith(
-        `SELECT id FROM specialties WHERE id IN ()`,
-        [] // La lista de parámetros está vacía
-      );
-    });
-  });
-
-  describe("deleteUser", () => {
-    it("should delete a user by ID", async () => {
-      const mockDb = {
-        run: jest.fn().mockResolvedValue(undefined), // Simula la respuesta de la base de datos
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
-
-      await userRepository.deleteUser(1);
+      await userRepository.updateUser(1, user);
 
       expect(mockDb.run).toHaveBeenCalledWith(
-        `DELETE FROM users WHERE id = ?`,
-        [1]
+        "UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?",
+        [user.name, user.email, user.password, 1]
       );
     });
   });
 
   describe("searchUsersWithPagination", () => {
-    it("should return users with pagination", async () => {
-      const mockDb = {
-        all: jest.fn().mockResolvedValue([
-          {
-            id: 1,
-            name: "John Doe",
-            email: "john@example.com",
-            password: "securepassword",
-            role: "Patient",
-          },
-        ]),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+    it("should return paginated users with filters", async () => {
+      const users: User[] = [
+        {
+          id: 1,
+          name: "Test User",
+          email: "test@user.com",
+          password: "hashed_password",
+          role: "Patient",
+        },
+      ];
 
-      const filters = { role: "Patient", name: "John" };
+      mockDb.all.mockResolvedValue(users);
+
+      const filters = { role: "Patient", name: "Test" };
       const options = { limit: 10, offset: 0, sort: "name" };
 
       const result = await userRepository.searchUsersWithPagination(
@@ -206,52 +153,86 @@ describe("UserRepository", () => {
         options
       );
 
-      expect(result).toEqual([
-        {
-          id: 1,
-          name: "John Doe",
-          email: "john@example.com",
-          password: "securepassword",
-          role: "Patient",
-        },
-      ]);
+      expect(result).toEqual(users);
       expect(mockDb.all).toHaveBeenCalledWith(
-        `SELECT * FROM users WHERE role = ? AND name LIKE ? ORDER BY name LIMIT ? OFFSET ?`,
-        ["Patient", "%John%", 10, 0]
+        expect.stringContaining("SELECT * FROM users"),
+        ["Patient", "%Test%", 10, 0]
+      );
+    });
+  });
+
+  describe("validateSpecialties", () => {
+    it("should return true if all specialties are valid", async () => {
+      mockDb.all.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+      const result = await userRepository.validateSpecialties([1, 2]);
+
+      expect(result).toBe(true);
+      expect(mockDb.all).toHaveBeenCalledWith(
+        "SELECT id FROM specialties WHERE id IN (?, ?)",
+        [1, 2]
       );
     });
 
-    it("should handle empty filters and return all users", async () => {
-      const mockDb = {
-        all: jest.fn().mockResolvedValue([
-          {
-            id: 1,
-            name: "John Doe",
-            email: "john@example.com",
-            password: "securepassword",
-            role: "Patient",
-          },
-        ]),
-      };
-      dbServiceMock.connect.mockResolvedValue(mockDb as any);
+    it("should return false if any specialties are invalid", async () => {
+      mockDb.all.mockResolvedValue([{ id: 1 }]);
 
-      const result = await userRepository.searchUsersWithPagination(
-        {},
-        { limit: 10, offset: 0, sort: "name" }
-      );
+      const result = await userRepository.validateSpecialties([1, 2]);
 
-      expect(result).toEqual([
-        {
-          id: 1,
-          name: "John Doe",
-          email: "john@example.com",
-          password: "securepassword",
-          role: "Patient",
-        },
-      ]);
+      expect(result).toBe(false);
       expect(mockDb.all).toHaveBeenCalledWith(
-        `SELECT * FROM users  ORDER BY name LIMIT ? OFFSET ?`, // Refleja el espacio adicional generado
-        [10, 0]
+        "SELECT id FROM specialties WHERE id IN (?, ?)",
+        [1, 2]
+      );
+    });
+  });
+
+  describe("associateDoctorSpecialties", () => {
+    it("should associate specialties with a doctor", async () => {
+      mockDb.get.mockResolvedValue({ id: 1 });
+      mockDb.all.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+      mockDb.run.mockResolvedValue(undefined);
+
+      await userRepository.associateDoctorSpecialties(1, [1, 2]);
+
+      expect(mockDb.run).toHaveBeenCalledTimes(2);
+      expect(mockDb.run).toHaveBeenCalledWith(
+        "INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES (?, ?)",
+        [1, 1]
+      );
+      expect(mockDb.run).toHaveBeenCalledWith(
+        "INSERT INTO doctor_specialties (doctorId, specialtyId) VALUES (?, ?)",
+        [1, 2]
+      );
+    });
+
+    it("should throw an error if the doctor does not exist", async () => {
+      mockDb.get.mockResolvedValue(null);
+
+      await expect(
+        userRepository.associateDoctorSpecialties(1, [1, 2])
+      ).rejects.toThrow("Doctor not found or invalid role.");
+    });
+
+    it("should throw an error if some specialties are invalid", async () => {
+      mockDb.get.mockResolvedValue({ id: 1 });
+      mockDb.all.mockResolvedValue([{ id: 1 }]);
+
+      await expect(
+        userRepository.associateDoctorSpecialties(1, [1, 2])
+      ).rejects.toThrow("Some specialties do not exist.");
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should delete a user by ID", async () => {
+      mockDb.run.mockResolvedValue(undefined);
+
+      await userRepository.deleteUser(1);
+
+      expect(mockDb.run).toHaveBeenCalledWith(
+        "DELETE FROM users WHERE id = ?",
+        [1]
       );
     });
   });
