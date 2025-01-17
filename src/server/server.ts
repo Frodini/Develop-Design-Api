@@ -14,7 +14,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 const api = Container.get(Api);
-app.use("/api", api.getApiRouter());
+app.use("/", api.getApiRouter());
 
 (async () => {
   try {

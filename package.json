@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server/server.js",
     "dev": "nodemon src/server/server.ts",
-    "build": "tsc",
+    "build": "tsc && cpx \"src/data/**/*\" dist/data",
     "test": "jest"
   },
   "keywords": [],
